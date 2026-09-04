@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yooni Delivery - Disponibilites</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Yooni Delivery - Livreur</div>
+        <div class="nav-links">
+            <a href="/livreur/livraison.html">Livraisons</a>
+            <a href="/livreur/map-tracking.html">Carte</a>
+            <a href="/livreur/disponibilites.html">Disponibilites</a>
+            <button id="logoutBtn" class="btn btn-secondary">Deconnexion</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Mes disponibilites</h1>
+
+        <div class="form-card">
+            <div class="form-group">
+                <label for="statut">Statut actuel</label>
+                <select id="statut">
+                    <option value="DISPONIBLE">Disponible</option>
+                    <option value="HORS_SERVICE">Hors service</option>
+                </select>
+            </div>
+            <button id="updateStatut" class="btn btn-primary">Mettre a jour</button>
+            <div id="message" class="message" style="display:none;"></div>
+        </div>
+
+        <section class="section" style="margin-top:2rem;">
+            <h2>Livraisons en attente</h2>
+            <div id="pendingLivraisons"></div>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            const livreurId = localStorage.getItem('livreurId');
+            if (!token) { window.location.href = '/login.html'; return; }
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.clear();
+                window.location.href = '/login.html';
+            });
+
+            loadPendingLivraisons();
+
+            document.getElementById('updateStatut').addEventListener('click', async () => {
+                const statut = document.getElementById('statut').value;
+                const msgEl = document.getElementById('message');
+                try {
+                    await fetch('/api/livreur/' + livreurId + '/statut?statut=' + statut, {
+                        method: 'PUT',
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    msgEl.textContent = 'Statut mis a jour: ' + statut;
+                    msgEl.className = 'message success';
+                    msgEl.style.display = 'block';
+                } catch (e) {
+                    msgEl.textContent = 'Erreur';
+                    msgEl.className = 'message error';
+                    msgEl.style.display = 'block';
+                }
+            });
+
+            async function loadPendingLivraisons() {
+                try {
+                    const res = await fetch('/api/livraisons', {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    const livraisons = await res.json();
+                    const pending = livraisons.filter(l => l.statut === 'EN_ATTENTE');
+                    renderPending(pending);
+                } catch (e) {
+                    console.error('Erreur:', e);
+                }
+            }
+
+            function renderPending(livraisons) {
+                const container = document.getElementById('pendingLivraisons');
+                if (livraisons.length === 0) {
+                    container.innerHTML = '<p class="empty-state">Aucune livraison en attente.</p>';
+                    return;
+                }
+                container.innerHTML = livraisons.map(l => `
+                    <div class="card">
+                        <strong>Livraison #${l.id}</strong>
+                        <p>${l.villeDepart} → ${l.villeArrivee}</p>
+                        <p>Colis: ${l.colisDescription} (${l.colisPoids}kg)</p>
+                        <p>Prix: ${l.prix} FCFA</p>
+                        <button class="btn btn-sm btn-success" onclick="accepterLivraison(${l.id})">Accepter</button>
+                    </div>
+                `).join('');
+            }
+
+            window.accepterLivraison = async function(livraisonId) {
+                try {
+                    await fetch('/api/livraisons/' + livraisonId + '/assigner/' + livreurId, {
+                        method: 'PUT',
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    loadPendingLivraisons();
+                } catch (e) {
+                    console.error('Erreur:', e);
+                }
+            };
+        });
+    </script>
+</body>
+</html>

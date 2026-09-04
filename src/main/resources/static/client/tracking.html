@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yooni Delivery - Tracking</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Yooni Delivery</div>
+        <div class="nav-links">
+            <a href="/client/commander.html">Commander</a>
+            <a href="/client/mes-livraisons.html">Mes livraisons</a>
+            <a href="/client/tracking.html">Tracking</a>
+            <button id="logoutBtn" class="btn btn-secondary">Deconnexion</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Suivi de livraison</h1>
+        <div class="tracking-layout">
+            <div id="map" class="map-container"></div>
+            <div class="tracking-info">
+                <div id="livraisonInfo">
+                    <p class="empty-state">Selectionnez une livraison pour la suivre.</p>
+                </div>
+                <div id="livraisonsList"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map, livreurMarker;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            const userId = localStorage.getItem('userId');
+            if (!token) { window.location.href = '/login.html'; return; }
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.clear();
+                window.location.href = '/login.html';
+            });
+
+            initMap();
+            loadLivraisons();
+
+            async function loadLivraisons() {
+                try {
+                    const res = await fetch('/api/livraisons/client/' + userId, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    const livraisons = await res.json();
+                    renderLivraisons(livraisons.filter(l => ['PRISE_EN_CHARGE', 'EN_COURS'].includes(l.statut)));
+                } catch (e) {
+                    console.error('Erreur:', e);
+                }
+            }
+
+            function renderLivraisons(livraisons) {
+                const container = document.getElementById('livraisonsList');
+                if (livraisons.length === 0) {
+                    container.innerHTML = '<p>Aucune livraison en cours.</p>';
+                    return;
+                }
+                container.innerHTML = livraisons.map(l => `
+                    <div class="card" onclick="suivreLivraison(${l.livreurId})">
+                        <strong>Livraison #${l.id}</strong>
+                        <p>${l.villeDepart} → ${l.villeArrivee}</p>
+                        <p>Livreur: ${l.livreurNom || 'Non assigne'}</p>
+                        <span class="badge badge-${l.statut.toLowerCase()}">${l.statut}</span>
+                    </div>
+                `).join('');
+            }
+
+            window.suivreLivraison = async function(livreurId) {
+                try {
+                    const res = await fetch('/api/tracking/' + livreurId, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    if (res.ok) {
+                        const pos = await res.json();
+                        updateMap(pos.latitude, pos.longitude, pos.livreurNom);
+                        document.getElementById('livraisonInfo').innerHTML = `
+                            <h3>${pos.livreurNom}</h3>
+                            <p>Position: ${pos.latitude.toFixed(4)}, ${pos.longitude.toFixed(4)}</p>
+                            <p>Vitesse: ${pos.vitesse} km/h</p>
+                            <p>Derniere mise a jour: ${new Date(pos.timestamp).toLocaleTimeString('fr')}</p>
+                        `;
+                    }
+                } catch (e) {
+                    console.error('Erreur tracking:', e);
+                }
+            };
+        });
+
+        function initMap() {
+            map = L.map('map').setView([14.7167, -17.4677], 7);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        function updateMap(lat, lon, nom) {
+            if (livreurMarker) map.removeLayer(livreurMarker);
+            livreurMarker = L.marker([lat, lon]).addTo(map)
+                .bindPopup(nom).openPopup();
+            map.setView([lat, lon], 12);
+        }
+    </script>
+</body>
+</html>

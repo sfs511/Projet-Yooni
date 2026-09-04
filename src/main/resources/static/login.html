@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yooni Delivery - Login</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Yooni Delivery</h1>
+                <p>Connectez-vous a votre compte</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required placeholder="votre@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <input type="password" id="password" name="password" required placeholder="Votre mot de passe">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
+                <div id="loginError" class="error-message" style="display:none;"></div>
+            </form>
+            <div class="login-footer">
+                <p>Pas encore de compte ? <a href="#" id="showRegister">S'inscrire</a></p>
+            </div>
+        </div>
+
+        <div id="registerCard" class="login-card" style="display:none;">
+            <div class="login-header">
+                <h1>Yooni Delivery</h1>
+                <p>Creer un nouveau compte</p>
+            </div>
+            <form id="registerForm" class="login-form">
+                <div class="form-group">
+                    <label for="regEmail">Email</label>
+                    <input type="email" id="regEmail" name="email" required placeholder="votre@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Mot de passe</label>
+                    <input type="password" id="regPassword" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="regTelephone">Telephone</label>
+                    <input type="tel" id="regTelephone" name="telephone" required placeholder="770000000">
+                </div>
+                <div class="form-group">
+                    <label for="regRole">Role</label>
+                    <select id="regRole" name="role" required>
+                        <option value="CLIENT">Client</option>
+                        <option value="LIVREUR">Livreur</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">S'inscrire</button>
+                <div id="registerError" class="error-message" style="display:none;"></div>
+            </form>
+            <div class="login-footer">
+                <p>Deja un compte ? <a href="#" id="showLogin">Se connecter</a></p>
+            </div>
+        </div>
+    </div>
+    <script src="/js/auth.js"></script>
+</body>
+</html>

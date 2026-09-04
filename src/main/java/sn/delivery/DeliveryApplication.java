@@ -1,11 +1,11 @@
-package sn.tripplanner;
+package sn.delivery;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class SenegalTripPlannerApplication {
+public class DeliveryApplication {
     public static void main(String[] args) {
-        SpringApplication.run(SenegalTripPlannerApplication.class, args);
+        SpringApplication.run(DeliveryApplication.class, args);
     }
 }

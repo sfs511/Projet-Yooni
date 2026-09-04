@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yooni Delivery - Commander</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Yooni Delivery</div>
+        <div class="nav-links">
+            <a href="/client/commander.html">Commander</a>
+            <a href="/client/mes-livraisons.html">Mes livraisons</a>
+            <a href="/client/tracking.html">Tracking</a>
+            <button id="logoutBtn" class="btn btn-secondary">Deconnexion</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Commander une livraison</h1>
+
+        <form id="commandeForm" class="form-card">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="adresseDepart">Adresse de depart</label>
+                    <input type="text" id="adresseDepart" required placeholder="Ex: Rue 10, Plateau, Dakar">
+                </div>
+                <div class="form-group">
+                    <label for="villeDepart">Ville de depart</label>
+                    <input type="text" id="villeDepart" required placeholder="Dakar">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="adresseArrivee">Adresse d'arrivee</label>
+                    <input type="text" id="adresseArrivee" required placeholder="Ex: Avenue Cheikh Anta Diop">
+                </div>
+                <div class="form-group">
+                    <label for="villeArrivee">Ville d'arrivee</label>
+                    <input type="text" id="villeArrivee" required placeholder="Thiès">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="descriptionColis">Description du colis</label>
+                    <input type="text" id="descriptionColis" required placeholder="Ex: Document important">
+                </div>
+                <div class="form-group">
+                    <label for="poids">Poids (kg)</label>
+                    <input type="number" id="poids" step="0.1" min="0.1" required placeholder="1.5">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Creer la livraison</button>
+            <div id="formMessage" class="message" style="display:none;"></div>
+        </form>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            const userId = localStorage.getItem('userId');
+            if (!token) { window.location.href = '/login.html'; return; }
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.clear();
+                window.location.href = '/login.html';
+            });
+
+            document.getElementById('commandeForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const messageEl = document.getElementById('formMessage');
+                try {
+                    const res = await fetch('/api/livraisons', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify({
+                            clientId: userId,
+                            descriptionColis: document.getElementById('descriptionColis').value,
+                            poids: parseFloat(document.getElementById('poids').value),
+                            adresseDepart: document.getElementById('adresseDepart').value,
+                            adresseArrivee: document.getElementById('adresseArrivee').value,
+                            villeDepart: document.getElementById('villeDepart').value,
+                            villeArrivee: document.getElementById('villeArrivee').value
+                        })
+                    });
+                    if (res.ok) {
+                        messageEl.textContent = 'Livraison creee avec succes !';
+                        messageEl.className = 'message success';
+                        messageEl.style.display = 'block';
+                        e.target.reset();
+                    } else {
+                        const err = await res.json();
+                        messageEl.textContent = 'Erreur: ' + (err.error || 'Inconnue');
+                        messageEl.className = 'message error';
+                        messageEl.style.display = 'block';
+                    }
+                } catch (err) {
+                    messageEl.textContent = 'Erreur de connexion';
+                    messageEl.className = 'message error';
+                    messageEl.style.display = 'block';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

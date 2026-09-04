@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yooni Delivery - Mes livraisons</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Yooni Delivery</div>
+        <div class="nav-links">
+            <a href="/client/commander.html">Commander</a>
+            <a href="/client/mes-livraisons.html">Mes livraisons</a>
+            <a href="/client/tracking.html">Tracking</a>
+            <button id="logoutBtn" class="btn btn-secondary">Deconnexion</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Mes livraisons</h1>
+        <div id="livraisonsList" class="table-container"></div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            const userId = localStorage.getItem('userId');
+            if (!token) { window.location.href = '/login.html'; return; }
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.clear();
+                window.location.href = '/login.html';
+            });
+
+            loadLivraisons();
+
+            async function loadLivraisons() {
+                try {
+                    const res = await fetch('/api/livraisons/client/' + userId, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    const livraisons = await res.json();
+                    renderLivraisons(livraisons);
+                } catch (e) {
+                    console.error('Erreur:', e);
+                }
+            }
+
+            function renderLivraisons(livraisons) {
+                const container = document.getElementById('livraisonsList');
+                if (livraisons.length === 0) {
+                    container.innerHTML = '<p class="empty-state">Aucune livraison pour le moment.</p>';
+                    return;
+                }
+                container.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>De</th>
+                                <th>Vers</th>
+                                <th>Statut</th>
+                                <th>Prix</th>
+                                <th>Colis</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${livraisons.map(l => `
+                                <tr>
+                                    <td>#${l.id}</td>
+                                    <td>${l.villeDepart || l.adresseDepart}</td>
+                                    <td>${l.villeArrivee || l.adresseArrivee}</td>
+                                    <td><span class="badge badge-${l.statut.toLowerCase()}">${formatStatut(l.statut)}</span></td>
+                                    <td>${l.prix} FCFA</td>
+                                    <td>${l.colisDescription} (${l.colisPoids}kg)</td>
+                                    <td>${new Date(l.dateCreation).toLocaleDateString('fr')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>`;
+            }
+
+            function formatStatut(statut) {
+                const map = {
+                    'EN_ATTENTE': 'En attente',
+                    'PRISE_EN_CHARGE': 'Prise en charge',
+                    'EN_COURS': 'En cours',
+                    'LIVREE': 'Livree',
+                    'ANNULEE': 'Annulee',
+                    'ECHEC': 'Echec'
+                };
+                return map[statut] || statut;
+            }
+        });
+    </script>
+</body>
+</html>

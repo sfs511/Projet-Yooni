@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yooni Delivery - Mes livraisons</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Yooni Delivery - Livreur</div>
+        <div class="nav-links">
+            <a href="/livreur/livraison.html">Livraisons</a>
+            <a href="/livreur/map-tracking.html">Carte</a>
+            <a href="/livreur/disponibilites.html">Disponibilites</a>
+            <button id="logoutBtn" class="btn btn-secondary">Deconnexion</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Mes livraisons</h1>
+        <div id="livraisonsList" class="table-container"></div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            const livreurId = localStorage.getItem('livreurId');
+            if (!token) { window.location.href = '/login.html'; return; }
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.clear();
+                window.location.href = '/login.html';
+            });
+
+            loadLivraisons();
+
+            async function loadLivraisons() {
+                try {
+                    const res = await fetch('/api/livraisons/livreur/' + livreurId, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    const livraisons = await res.json();
+                    renderLivraisons(livraisons);
+                } catch (e) {
+                    console.error('Erreur:', e);
+                }
+            }
+
+            function renderLivraisons(livraisons) {
+                const container = document.getElementById('livraisonsList');
+                if (livraisons.length === 0) {
+                    container.innerHTML = '<p class="empty-state">Aucune livraison assignee.</p>';
+                    return;
+                }
+                container.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Client</th>
+                                <th>De</th>
+                                <th>Vers</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${livraisons.map(l => `
+                                <tr>
+                                    <td>#${l.id}</td>
+                                    <td>${l.clientNom}</td>
+                                    <td>${l.villeDepart}</td>
+                                    <td>${l.villeArrivee}</td>
+                                    <td><span class="badge badge-${l.statut.toLowerCase()}">${l.statut}</span></td>
+                                    <td>
+                                        ${l.statut === 'PRISE_EN_CHARGE' ? `<button class="btn btn-sm" onclick="updateStatut(${l.id}, 'EN_COURS')">Commencer</button>` : ''}
+                                        ${l.statut === 'EN_COURS' ? `<button class="btn btn-sm btn-success" onclick="updateStatut(${l.id}, 'LIVREE')">Livre</button>` : ''}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>`;
+            }
+
+            window.updateStatut = async function(livraisonId, statut) {
+                try {
+                    await fetch('/api/livraisons/' + livraisonId + '/statut?statut=' + statut, {
+                        method: 'PUT',
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    loadLivraisons();
+                } catch (e) {
+                    console.error('Erreur:', e);
+                }
+            };
+        });
+    </script>
+</body>
+</html>

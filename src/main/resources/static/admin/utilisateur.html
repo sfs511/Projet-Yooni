@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yooni Delivery - Utilisateurs</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Yooni Delivery - Admin</div>
+        <div class="nav-links">
+            <a href="/admin/dashboard.html">Dashboard</a>
+            <a href="/admin/utilisateur.html">Utilisateurs</a>
+            <a href="/index.html">Trip Planner</a>
+            <button id="logoutBtn" class="btn btn-secondary">Deconnexion</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Gestion des utilisateurs</h1>
+
+        <div class="section">
+            <h2>Clients</h2>
+            <div id="clientsList" class="table-container"></div>
+        </div>
+
+        <div class="section">
+            <h2>Livreurs</h2>
+            <div id="livreursList" class="table-container"></div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            if (!token) { window.location.href = '/login.html'; return; }
+            loadUsers();
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.clear();
+                window.location.href = '/login.html';
+            });
+        });
+
+        async function loadUsers() {
+            try {
+                const [clients, livreurs] = await Promise.all([
+                    fetch('/api/client').then(r => r.json()),
+                    fetch('/api/livreur').then(r => r.json())
+                ]);
+                renderClients(clients);
+                renderLivreurs(livreurs);
+            } catch (e) {
+                console.error('Erreur:', e);
+            }
+        }
+
+        function renderClients(clients) {
+            const container = document.getElementById('clientsList');
+            if (clients.length === 0) { container.innerHTML = '<p>Aucun client</p>'; return; }
+            container.innerHTML = `
+                <table>
+                    <thead><tr><th>ID</th><th>Nom</th><th>Prenom</th><th>Email</th><th>Telephone</th><th>Ville</th></tr></thead>
+                    <tbody>
+                        ${clients.map(c => `
+                            <tr>
+                                <td>${c.id}</td>
+                                <td>${c.nom}</td>
+                                <td>${c.prenom}</td>
+                                <td>${c.email}</td>
+                                <td>${c.telephone}</td>
+                                <td>${c.ville || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>`;
+        }
+
+        function renderLivreurs(livreurs) {
+            const container = document.getElementById('livreursList');
+            if (livreurs.length === 0) { container.innerHTML = '<p>Aucun livreur</p>'; return; }
+            container.innerHTML = `
+                <table>
+                    <thead><tr><th>Nom</th><th>Email</th><th>Vehicule</th><th>Zone</th><th>Statut</th></tr></thead>
+                    <tbody>
+                        ${livreurs.map(l => `
+                            <tr>
+                                <td>${l.nom} ${l.prenom}</td>
+                                <td>${l.email}</td>
+                                <td>${l.vehicule || '-'}</td>
+                                <td>${l.zone || '-'}</td>
+                                <td><span class="badge badge-${l.statut.toLowerCase()}">${l.statut}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>`;
+        }
+    </script>
+</body>
+</html>

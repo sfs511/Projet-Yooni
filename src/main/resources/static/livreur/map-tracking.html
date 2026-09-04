@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yooni Delivery - Carte Livreur</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Yooni Delivery - Livreur</div>
+        <div class="nav-links">
+            <a href="/livreur/livraison.html">Livraisons</a>
+            <a href="/livreur/map-tracking.html">Carte</a>
+            <a href="/livreur/disponibilites.html">Disponibilites</a>
+            <button id="logoutBtn" class="btn btn-secondary">Deconnexion</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Ma position</h1>
+        <div class="tracking-layout">
+            <div id="map" class="map-container"></div>
+            <div class="tracking-info">
+                <div id="positionInfo">
+                    <p>Coordonnees actuelles</p>
+                    <p id="coords">En attente...</p>
+                </div>
+                <button id="shareLocation" class="btn btn-primary">Partager ma position</button>
+                <button id="stopTracking" class="btn btn-secondary" style="margin-top:10px;">Arreter le tracking</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map, marker;
+        let watchId;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            const livreurId = localStorage.getItem('livreurId');
+            if (!token) { window.location.href = '/login.html'; return; }
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.clear();
+                window.location.href = '/login.html';
+            });
+
+            initMap();
+
+            document.getElementById('shareLocation').addEventListener('click', () => {
+                if (navigator.geolocation) {
+                    watchId = navigator.geolocation.watchPosition(
+                        async (pos) => {
+                            const lat = pos.coords.latitude;
+                            const lon = pos.coords.longitude;
+                            const vitesse = pos.coords.speed || 0;
+
+                            updateMap(lat, lon);
+                            document.getElementById('coords').textContent =
+                                `Lat: ${lat.toFixed(4)}, Lng: ${lon.toFixed(4)}, Vitesse: ${vitesse.toFixed(1)} km/h`;
+
+                            try {
+                                await fetch('/api/tracking/' + livreurId, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': 'Bearer ' + token
+                                    },
+                                    body: JSON.stringify({ latitude: lat, longitude: lon, vitesse: vitesse, direction: pos.coords.heading || 0 })
+                                });
+                            } catch (e) {
+                                console.error('Erreur envoi position:', e);
+                            }
+                        },
+                        (err) => console.error('Erreur geolocation:', err),
+                        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+                    );
+                }
+            });
+
+            document.getElementById('stopTracking').addEventListener('click', () => {
+                if (watchId) navigator.geolocation.clearWatch(watchId);
+                document.getElementById('coords').textContent = 'Tracking arrete.';
+            });
+        });
+
+        function initMap() {
+            map = L.map('map').setView([14.7167, -17.4677], 7);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        function updateMap(lat, lon) {
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([lat, lon]).addTo(map).bindPopup('Ma position').openPopup();
+            map.setView([lat, lon], 14);
+        }
+    </script>
+</body>
+</html>

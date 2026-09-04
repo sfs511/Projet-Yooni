@@ -1,26 +1,27 @@
-package sn.tripplanner.network;
+package sn.delivery.network;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
-/**
- * Composant de notification utilise par GraphService.
- *
- * Dans cette version TCP-only, les notifications sont affichees
- * dans les logs du serveur (console Spring Boot).
- * Elles sont egalement visibles cote client via la console TCP
- * de l'interface HTML.
- *
- * Note : si vous souhaitez ajouter WebSocket plus tard,
- * il suffit d'injecter SimpMessagingTemplate ici.
- */
 @Component
 public class NotificationWebSocket {
 
-    /**
-     * Envoie un message de statut dans les logs du serveur.
-     * Appele par GraphService a chaque etape des algorithmes.
-     */
+    private final SimpMessagingTemplate messagingTemplate;
+
+    public NotificationWebSocket(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
+    }
+
     public void envoyerStatut(String message) {
         System.out.println("[ALGO] " + message);
+        messagingTemplate.convertAndSend("/topic/status", message);
+    }
+
+    public void envoyerNotification(String destination, Object payload) {
+        messagingTemplate.convertAndSend(destination, payload);
+    }
+
+    public void envoyerTracking(Long livraisonId, Object position) {
+        messagingTemplate.convertAndSend("/topic/tracking/" + livraisonId, position);
     }
 }
